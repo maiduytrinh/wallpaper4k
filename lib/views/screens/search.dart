@@ -71,10 +71,10 @@ class _SearchScreenState extends State<SearchScreen> {
                                 context,
                                 MaterialPageRoute(
                                     builder: (context) => FullScreen(
-                                        imgUrl: searchResults[index].imgSrc)));
+                                        imgUrl: searchResults[index].url)));
                           },
                           child: Hero(
-                            tag: searchResults[index].imgSrc,
+                            tag: searchResults[index].url,
                             child: Container(
                               height: 800,
                               width: 50,
@@ -87,7 +87,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                     height: 800,
                                     width: 50,
                                     fit: BoxFit.cover,
-                                    searchResults[index].imgSrc),
+                                    searchResults[index].url),
                               ),
                             ),
                           ),

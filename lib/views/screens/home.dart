@@ -17,19 +17,19 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late List<PhotosModel> trendingWallList;
   late List<CategoryModel> CatModList;
+  static var uriStorage = "https://www.wallstorage.net/wallstorage/";
   bool isLoading = true;
 
   GetCatDetails() async {
-    CatModList = ApiOperations.getCategoriesList();
+    CatModList = await ApiOperations.getCategoriesList();
     print("GETTTING CAT MOD LIST");
-    print(CatModList);
     setState(() {
       CatModList = CatModList;
     });
   }
 
   GetTrendingWallpapers() async {
-    trendingWallList = await ApiOperations.getTrendingWallpapers();
+    trendingWallList = await ApiOperations.getWallpapersHomepage(2);
 
     setState(() {
       isLoading = false;
@@ -71,8 +71,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     scrollDirection: Axis.horizontal,
                     itemCount: CatModList.length,
                     itemBuilder: ((context, index) => CatBlock(
-                          categoryImgSrc: CatModList[index].catImgUrl,
-                          categoryName: CatModList[index].catName,
+                          categoryImgSrc: CatModList[index].url,
+                          categoryName: CatModList[index].name,
                         ))),
               ),
             ),
@@ -100,10 +100,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   MaterialPageRoute(
                                       builder: (context) => FullScreen(
                                           imgUrl:
-                                              trendingWallList[index].imgSrc)));
+                                              buildUrlContent(trendingWallList[index].url))));
                             },
                             child: Hero(
-                              tag: trendingWallList[index].imgSrc,
+                              tag: buildUrlContent(trendingWallList[index].url),
                               child: Container(
                                 height: 800,
                                 width: 50,
@@ -116,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       height: 800,
                                       width: 50,
                                       fit: BoxFit.cover,
-                                      trendingWallList[index].imgSrc),
+                                      buildUrlContent(trendingWallList[index].url)),
                                 ),
                               ),
                             ),
@@ -128,5 +128,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  String buildUrlContent(String fileName) {
+     return uriStorage + "minthumbnails/" + fileName;
   }
 }

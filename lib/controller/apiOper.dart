@@ -4,22 +4,22 @@ import 'package:http/http.dart' as http;
 import 'package:wallpaper_guru/model/categoryModel.dart';
 import 'package:wallpaper_guru/model/photosModel.dart';
 
-import 'dart:math';
-
 class ApiOperations {
   static List<PhotosModel> trendingWallpapers = [];
   static List<PhotosModel> searchWallpapersList = [];
   static List<CategoryModel> cateogryModelList = [];
 
-  static const String _apiKey =
-      "563492ad6f91700001000001647b18af76064a2290c59e8b19a9c3d7";
-  static Future<List<PhotosModel>> getTrendingWallpapers() async {
-    await http.get(Uri.parse("https://api.pexels.com/v1/curated"),
-        headers: {"Authorization": _apiKey}).then((value) {
-      print("RESPONSE REPORT");
-      print(value.body);
+  static const String _apiKey = "563492ad6f91700001000001647b18af76064a2290c59e8b19a9c3d7";
+  static String uri = 'http://10.0.2.2:4444/wallpaper/api/';
+  static String language= 'vi';
+  static String country= 'VN';
+
+  static Future<List<PhotosModel>> getWallpapersHomepage(int page) async {
+    var headers = {'language': language, 'country': country};
+
+    await http.get(Uri.parse(uri + "/data?pagenumber=" + page.toString()), headers: headers).then((value) {
       Map<String, dynamic> jsonData = jsonDecode(value.body);
-      List photos = jsonData['photos'];
+      List photos = jsonData['data']['wallpapers'];
       for (var element in photos) {
         trendingWallpapers.add(PhotosModel.fromAPI2App(element));
       }
@@ -27,6 +27,7 @@ class ApiOperations {
 
     return trendingWallpapers;
   }
+
 
   static Future<List<PhotosModel>> searchWallpapers(String query) async {
     await http.get(
@@ -44,26 +45,17 @@ class ApiOperations {
     return searchWallpapersList;
   }
 
-  static List<CategoryModel> getCategoriesList() {
-    List cateogryName = [
-      "Cars",
-      "Nature",
-      "Bikes",
-      "Street",
-      "City",
-      "Flowers"
-    ];
-    cateogryModelList.clear();
-    cateogryName.forEach((catName) async {
-      final random = Random();
+  static Future<List<CategoryModel>> getCategoriesList() async{
+    var headers = {'language': language, 'country': country};
 
-      PhotosModel photoModel =
-          (await searchWallpapers(catName))[0 + random.nextInt(11 - 0)];
-      print("IMG SRC IS HERE");
-      print(photoModel.imgSrc);
-      cateogryModelList
-          .add(CategoryModel(catImgUrl: photoModel.imgSrc, catName: catName));
+    await http.get(Uri.parse(uri + "/category"), headers: headers).then((value) {
+      Map<String, dynamic> jsonData = jsonDecode(value.body);
+      List categories = jsonData['data'];
+      for (var element in categories) {
+        cateogryModelList.add(CategoryModel.fromAPI2App(element));
+      }
     });
+
 
     return cateogryModelList;
   }

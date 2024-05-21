@@ -1,11 +1,14 @@
 class CategoryModel {
-  String catName;
-  String catImgUrl;
+  int id;
+  String name;
+  String url;
 
-  CategoryModel({required this.catImgUrl, required this.catName});
+  CategoryModel({required this.id, required this.name, required this.url});
 
-  static CategoryModel fromApi2App(Map<String, dynamic> category) {
+  static CategoryModel fromAPI2App(Map<String, dynamic> category) {
     return CategoryModel(
-        catImgUrl: category["imgUrl"], catName: category["CategoryName"]);
+        id: category["id"], 
+        name: category["name"],
+        url: category["url"] == null ? "" : category["url"]);
   }
 }

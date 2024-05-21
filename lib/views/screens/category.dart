@@ -104,10 +104,10 @@ bool isLoading  = true;
                                   MaterialPageRoute(
                                       builder: (context) => FullScreen(
                                           imgUrl:
-                                              categoryResults[index].imgSrc)));
+                                              categoryResults[index].url)));
                             },
                           child: Hero(
-                            tag: categoryResults[index].imgSrc,
+                            tag: categoryResults[index].url,
                             child: Container(
                               height: 800,
                               width: 50,
@@ -120,7 +120,7 @@ bool isLoading  = true;
                                     height: 800,
                                     width: 50,
                                     fit: BoxFit.cover,
-                                    categoryResults[index].imgSrc),
+                                    categoryResults[index].url),
                               ),
                             ),
                           ),
