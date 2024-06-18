@@ -1,41 +1,39 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_downloader/image_downloader.dart';
-import 'package:open_file/open_file.dart';
+import 'package:flutter_wallpaper_manager/flutter_wallpaper_manager.dart';
+import 'package:wallpaper_guru/controller/apiOper.dart';
 
 // var file = await DefaultCacheManager().getSingleFile(url);
 class FullScreen extends StatelessWidget {
-  String imgUrl;
-  FullScreen({super.key, required this.imgUrl});
+  final String imgUrl;
+  final String imgId;
+  FullScreen({super.key, required this.imgUrl, required this.imgId});
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  Future<void> setWallpaperFromFile(
-      String wallpaperUrl, BuildContext context) async {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text("Downloading Started...")));
+
+  Future<String?> setWallpaperFromFile(
+    String wallpaperUrl, BuildContext context) async {
     try {
       // Saved with this method.
       var imageId = await ImageDownloader.downloadImage(wallpaperUrl);
       if (imageId == null) {
-        return;
+        return null;
       }
       // Below is a method of obtaining saved image information.
-      var fileName = await ImageDownloader.findName(imageId);
+      // var fileName = await ImageDownloader.findName(imageId);
       var path = await ImageDownloader.findPath(imageId);
-      var size = await ImageDownloader.findByteSize(imageId);
-      var mimeType = await ImageDownloader.findMimeType(imageId);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text("Downloaded Sucessfully"),
-        action: SnackBarAction(
-            label: "Open",
-            onPressed: () {
-              OpenFile.open(path);
-            }),
-      ));
+      // var size = await ImageDownloader.findByteSize(imageId);
+      // var mimeType = await ImageDownloader.findMimeType(imageId);
+      
       print("IMAGE DOWNLOADED");
+      return path;
     } on PlatformException catch (error) {
       print(error);
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Error Occured - $error")));
+      return null;
     }
   }
 
@@ -45,7 +43,64 @@ class FullScreen extends StatelessWidget {
       key: _scaffoldKey,
       floatingActionButton: ElevatedButton(
           onPressed: () async {
-            await setWallpaperFromFile(imgUrl, context);
+            String? path = await setWallpaperFromFile(imgUrl, context);
+            // Hiển thị AlertDialog
+            if (path == null) {
+              ScaffoldMessenger.of(context)
+                 .showSnackBar(SnackBar(content: Text("Error DOWNLOAD IMAGE")));
+            } else {
+              // log tracking download image
+              ApiOperations.logToServerTracking("down", imgId, 1);
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text("Set Wallpaper"),
+                    content: Text("Choose where to set the wallpaper:"),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () async {
+                          // Đặt hình nền cho màn hình chính
+                          await WallpaperManager.setWallpaperFromFile(
+                            path!, // Đường dẫn đến hình ảnh đã tải xuống
+                            WallpaperManager.HOME_SCREEN,
+                          );
+                          Navigator.of(context).pop(); // Đóng AlertDialog
+                        },
+                        child: Text("Set home screen"),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          // Đặt hình nền cho màn hình khóa
+                          await WallpaperManager.setWallpaperFromFile(
+                            path!,
+                            WallpaperManager.LOCK_SCREEN,
+                          );
+                          Navigator.of(context).pop();
+                        },
+                        child: Text("Set lock screen"),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                
+                          // Đặt hình nền cho màn hình khóa và màn hình chính
+                          await WallpaperManager.setWallpaperFromFile(
+                            path!, // Đường dẫn đến hình ảnh đã tải xuống
+                            WallpaperManager.HOME_SCREEN,
+                          );
+                          await WallpaperManager.setWallpaperFromFile(
+                            path!,
+                            WallpaperManager.LOCK_SCREEN,
+                          );
+                          Navigator.of(context).pop();
+                        },
+                        child: Text("Set lock & home screen"),
+                      ),
+                    ],
+                  );
+                },
+              );
+            }
           },
           child: const Text("Set Wallpaper")),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,

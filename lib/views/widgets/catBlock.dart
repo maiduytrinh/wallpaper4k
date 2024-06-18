@@ -4,8 +4,11 @@ import 'package:wallpaper_guru/views/screens/category.dart';
 class CatBlock extends StatelessWidget {
   String categoryName;
   String categoryImgSrc;
+  String type;
+  int id;
+
   CatBlock(
-      {super.key, required this.categoryImgSrc, required this.categoryName});
+      {super.key, required this.categoryImgSrc, required this.categoryName, required this.type, required this.id});
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +18,7 @@ class CatBlock extends StatelessWidget {
             context,
             MaterialPageRoute(
                 builder: (context) => CategoryScreen(
-                    catImgUrl: categoryImgSrc, catName: categoryName)));
+                    catImgUrl: categoryImgSrc, catName: categoryName, type: type, id: id)));
       },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 7),

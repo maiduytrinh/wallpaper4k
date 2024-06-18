@@ -14,13 +14,26 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  late List<PhotosModel> searchResults;
+  late List<PhotosModel> searchResults = [];
+  static String uriStorage = "https://www.wallstorage.net/wallstorage/";
   bool isLoading = true;
+  bool isLoadingMore = false;
+  bool hasMoreData = true;
+  int currentPage = 1;
+  ScrollController _scrollController = ScrollController();
+
   GetSearchResults() async {
-    searchResults = await ApiOperations.searchWallpapers(widget.query);
+    print("Get Trending Wallpapers page: $currentPage");
+    List<PhotosModel> newWallpapers = await ApiOperations.searchWallpapers(currentPage, widget.query);
 
     setState(() {
+      if (newWallpapers.isEmpty) {
+        hasMoreData = false;
+      } else {
+        searchResults.addAll(newWallpapers);
+      }
       isLoading = false;
+      isLoadingMore = false;
     });
   }
 
@@ -29,6 +42,26 @@ class _SearchScreenState extends State<SearchScreen> {
     // TODO: implement initState
     super.initState();
     GetSearchResults();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);  // Xóa bộ lắng nghe khi dispose
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    // In vị trí hiện tại của cuộn để kiểm tra
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 && !isLoadingMore && hasMoreData) {
+      print("Reached the end, loading more...");
+      setState(() {
+        currentPage++;
+        isLoadingMore = true;
+      });
+      GetSearchResults();
+    }
   }
 
   @override
@@ -57,46 +90,64 @@ class _SearchScreenState extends State<SearchScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 10),
               height: MediaQuery.of(context).size.height,
               child: GridView.builder(
+                  controller: _scrollController,
                   physics: const BouncingScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       mainAxisExtent: 400,
                       crossAxisCount: 2,
                       crossAxisSpacing: 13,
                       mainAxisSpacing: 10),
-                  itemCount: searchResults.length,
-                  itemBuilder: ((context, index) => GridTile(
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => FullScreen(
-                                        imgUrl: searchResults[index].url)));
-                          },
-                          child: Hero(
-                            tag: searchResults[index].url,
-                            child: Container(
-                              height: 800,
-                              width: 50,
-                              decoration: BoxDecoration(
-                                  color: Colors.amberAccent,
-                                  borderRadius: BorderRadius.circular(20)),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(20),
-                                child: Image.network(
-                                    height: 800,
-                                    width: 50,
-                                    fit: BoxFit.cover,
-                                    searchResults[index].url),
-                              ),
+                  itemCount: searchResults.length + (isLoadingMore ? 1 : 0),
+                  itemBuilder: ((context, index) {
+                    if (index == searchResults.length) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                    }
+                    return GridTile(
+                      child: InkWell(
+                        onTap: () {
+                          ApiOperations.logToServerTracking("click", searchResults[index].id.toString(), 1);
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => FullScreen(
+                                      imgUrl: buildUrlContent(searchResults[index].url),
+                                      imgId: searchResults[index].id.toString(),
+                                  )
+                              )
+                          );
+                        },
+                        child: Hero(
+                          tag: buildUrlContent(searchResults[index].url),
+                          child: Container(
+                            height: 800,
+                            width: 50,
+                            decoration: BoxDecoration(
+                                color: Colors.amberAccent,
+                                borderRadius: BorderRadius.circular(20)),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Image.network(
+                                  height: 800,
+                                  width: 50,
+                                  fit: BoxFit.cover,
+                                  buildUrlContent(searchResults[index].url)),
                             ),
                           ),
                         ),
-                      ))),
+                      ),
+                    );
+                  })
+                ),
             )
           ],
         ),
       ),
     );
+  }
+
+  String buildUrlContent(String fileName) {
+     return uriStorage + "minthumbnails/" + fileName;
   }
 }

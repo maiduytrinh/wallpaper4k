@@ -15,32 +15,63 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late List<PhotosModel> trendingWallList;
-  late List<CategoryModel> CatModList;
-  static var uriStorage = "https://www.wallstorage.net/wallstorage/";
+  late List<PhotosModel> trendingWallList = [];
+  late List<CategoryModel> CatModList = [];
+  static String uriStorage = "https://www.wallstorage.net/wallstorage/";
   bool isLoading = true;
+  bool isLoadingMore = false;
+  bool hasMoreData = true;
+  int currentPage = 1;
+  ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    ApiOperations.getDeviceId();
+    GetCatDetails();
+    GetTrendingWallpapers();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);  // Xóa bộ lắng nghe khi dispose
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    // In vị trí hiện tại của cuộn để kiểm tra
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 && !isLoadingMore && hasMoreData) {
+      print("Reached the end, loading more...");
+      setState(() {
+        currentPage++;
+        isLoadingMore = true;
+      });
+      GetTrendingWallpapers();
+    }
+  }
 
   GetCatDetails() async {
     CatModList = await ApiOperations.getCategoriesList();
-    print("GETTTING CAT MOD LIST");
     setState(() {
       CatModList = CatModList;
     });
   }
 
   GetTrendingWallpapers() async {
-    trendingWallList = await ApiOperations.getWallpapersHomepage(2);
+    print("Get Trending Wallpapers page: $currentPage");
+    List<PhotosModel> newWallpapers = await ApiOperations.getWallpapersHomepage(currentPage);
 
     setState(() {
+      if (newWallpapers.isEmpty) {
+        hasMoreData = false;
+      } else {
+        trendingWallList.addAll(newWallpapers);
+      }
       isLoading = false;
+      isLoadingMore = false;
     });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    GetCatDetails();
-    GetTrendingWallpapers();
   }
 
   @override
@@ -73,6 +104,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: ((context, index) => CatBlock(
                           categoryImgSrc: CatModList[index].url,
                           categoryName: CatModList[index].name,
+                          type: CatModList[index].type,
+                          id: CatModList[index].id,
                         ))),
               ),
             ),
@@ -85,22 +118,34 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (context) => const HomeScreen()));
                 },
                 child: GridView.builder(
+                    controller: _scrollController,
                     physics: const BouncingScrollPhysics(),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         mainAxisExtent: 400,
                         crossAxisCount: 2,
                         crossAxisSpacing: 13,
                         mainAxisSpacing: 10),
-                    itemCount: trendingWallList.length,
-                    itemBuilder: ((context, index) => GridTile(
+                    itemCount: trendingWallList.length + (isLoadingMore ? 1 : 0),
+                    itemBuilder: ((context, index) {
+                      
+                      if (index == trendingWallList.length) {
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      }
+                      return GridTile(
                           child: InkWell(
                             onTap: () {
+                              ApiOperations.logToServerTracking("click", trendingWallList[index].id.toString(), 1);
                               Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => FullScreen(
-                                          imgUrl:
-                                              buildUrlContent(trendingWallList[index].url))));
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FullScreen(
+                                    imgUrl: buildUrlContent(trendingWallList[index].url),
+                                    imgId: trendingWallList[index].id.toString(),
+                                  ),
+                                )
+                              );
                             },
                             child: Hero(
                               tag: buildUrlContent(trendingWallList[index].url),
@@ -121,7 +166,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                           ),
-                        ))),
+                      );}
+                    )
+                  ),
               ),
             )
           ],
